@@ -80,94 +80,94 @@ stages:
         pathToSources: '$(Build.SourcesDirectory)'
         failIfCoverageEmpty: false
 
-# - stage: PackageAndPublish
-#   displayName: 'Package and Publish'
-#   dependsOn: BuildAndTest
-#   condition: succeeded()
-#   jobs:
-#   - job: PackageJob
-#     displayName: 'Package and Publish Job'
-#     steps:
-#     - task: UseDotNet@2
-#       displayName: 'Use .NET $(dotnetVersion)'
-#       inputs:
-#         packageType: 'sdk'
-#         version: '$(dotnetVersion)'
+- stage: PackageAndPublish
+  displayName: 'Package and Publish'
+  dependsOn: BuildAndTest
+  condition: succeeded()
+  jobs:
+  - job: PackageJob
+    displayName: 'Package and Publish Job'
+    steps:
+    - task: UseDotNet@2
+      displayName: 'Use .NET $(dotnetVersion)'
+      inputs:
+        packageType: 'sdk'
+        version: '$(dotnetVersion)'
         
-#     - task: DotNetCoreCLI@2
-#       displayName: 'Restore packages'
-#       inputs:
-#         command: 'restore'
-#         projects: '**/*.csproj'
-#         feedsToUse: 'select'
-#         vstsFeed: 'ProjectColdBrew/$(artifactsFeedName)'
-#         includeNuGetOrg: true
+    - task: DotNetCoreCLI@2
+      displayName: 'Restore packages'
+      inputs:
+        command: 'restore'
+        projects: '**/*.csproj'
+        feedsToUse: 'select'
+        vstsFeed: 'ProjectColdBrew/$(artifactsFeedName)'
+        includeNuGetOrg: false
         
-#     - task: DotNetCoreCLI@2
-#       displayName: 'Build solution'
-#       inputs:
-#         command: 'build'
-#         projects: '**/*.csproj'
-#         arguments: '--configuration $(buildConfiguration) --no-restore'
+    - task: DotNetCoreCLI@2
+      displayName: 'Build solution'
+      inputs:
+        command: 'build'
+        projects: '**/*.csproj'
+        arguments: '--configuration $(buildConfiguration) --no-restore'
         
-#     - pwsh: |
-#         if ($env:BUILD_SOURCEBRANCH -match "refs/tags/v(.+)") {
-#           $version = $matches[1]
-#           Write-Host "Release build detected. Using tag version: $version"
-#           Write-Host "##vso[task.setvariable variable=PackageVersion]$version"
-#           Write-Host "##vso[task.setvariable variable=IsReleaseBuild]true"
-#         } else {
-#           $version = "$env:MAJORVERSION.$env:MINORVERSION.$env:PATCHVERSION-alpha.$env:BUILD_BUILDNUMBER"
-#           Write-Host "Development build detected. Using version: $version"
-#           Write-Host "##vso[task.setvariable variable=PackageVersion]$version"
-#           Write-Host "##vso[task.setvariable variable=IsReleaseBuild]false"
-#         }
-#       displayName: 'Set Package Version'
-#       env:
-#         MAJORVERSION: $(majorVersion)
-#         MINORVERSION: $(minorVersion)
-#         PATCHVERSION: $(patchVersion)
+    - pwsh: |
+        if ($env:BUILD_SOURCEBRANCH -match "refs/tags/v(.+)") {
+          $version = $matches[1]
+          Write-Host "Release build detected. Using tag version: $version"
+          Write-Host "##vso[task.setvariable variable=PackageVersion]$version"
+          Write-Host "##vso[task.setvariable variable=IsReleaseBuild]true"
+        } else {
+          $version = "$env:MAJORVERSION.$env:MINORVERSION.$env:PATCHVERSION-alpha.$env:BUILD_BUILDNUMBER"
+          Write-Host "Development build detected. Using version: $version"
+          Write-Host "##vso[task.setvariable variable=PackageVersion]$version"
+          Write-Host "##vso[task.setvariable variable=IsReleaseBuild]false"
+        }
+      displayName: 'Set Package Version'
+      env:
+        MAJORVERSION: $(majorVersion)
+        MINORVERSION: $(minorVersion)
+        PATCHVERSION: $(patchVersion)
         
-#     - task: DotNetCoreCLI@2
-#       displayName: 'Pack NuGet package'
-#       inputs:
-#         command: 'pack'
-#         packagesToPack: '$(projectPath)'
-#         configuration: '$(buildConfiguration)'
-#         outputDir: '$(Build.ArtifactStagingDirectory)/packages'
-#         nobuild: true
-#         includesymbols: true
-#         includesource: true
-#         versioningScheme: 'byEnvVar'
-#         versionEnvVar: 'PackageVersion'
-#         buildProperties: |
-#           RepositoryUrl=$(Build.Repository.Uri)
-#           RepositoryBranch=$(Build.SourceBranchName)
-#           RepositoryCommit=$(Build.SourceVersion)
-#           PackageProjectUrl=$(Build.Repository.Uri)
+    - task: DotNetCoreCLI@2
+      displayName: 'Pack NuGet package'
+      inputs:
+        command: 'pack'
+        packagesToPack: '$(projectPath)'
+        configuration: '$(buildConfiguration)'
+        outputDir: '$(Build.ArtifactStagingDirectory)/packages'
+        nobuild: true
+        includesymbols: true
+        includesource: true
+        versioningScheme: 'byEnvVar'
+        versionEnvVar: 'PackageVersion'
+        buildProperties: |
+          RepositoryUrl=$(Build.Repository.Uri)
+          RepositoryBranch=$(Build.SourceBranchName)
+          RepositoryCommit=$(Build.SourceVersion)
+          PackageProjectUrl=$(Build.Repository.Uri)
           
-#     - task: PowerShell@2
-#       displayName: 'List created packages'
-#       inputs:
-#         targetType: 'inline'
-#         script: |
-#           Write-Host "Packages created:"
-#           Get-ChildItem -Path "$(Build.ArtifactStagingDirectory)/packages" -Recurse | ForEach-Object {
-#             Write-Host "  $($_.Name) - $($_.Length) bytes"
-#           }
+    - task: PowerShell@2
+      displayName: 'List created packages'
+      inputs:
+        targetType: 'inline'
+        script: |
+          Write-Host "Packages created:"
+          Get-ChildItem -Path "$(Build.ArtifactStagingDirectory)/packages" -Recurse | ForEach-Object {
+            Write-Host "  $($_.Name) - $($_.Length) bytes"
+          }
           
       
-#     - task: DotNetCoreCLI@2
-#       displayName: 'Push to Azure Artifacts'
-#       inputs:
-#         command: 'push'
-#         packagesToPush: '$(Build.ArtifactStagingDirectory)/packages/*.nupkg'
-#         nuGetFeedType: 'internal'
-#         publishVstsFeed: 'Phill/$(artifactsFeedName)'
+    - task: DotNetCoreCLI@2
+      displayName: 'Push to Azure Artifacts'
+      inputs:
+        command: 'push'
+        packagesToPush: '$(Build.ArtifactStagingDirectory)/packages/*.nupkg'
+        nuGetFeedType: 'internal'
+        publishVstsFeed: 'ProjectColdBrew/$(artifactsFeedName)'
         
-#     - task: PublishBuildArtifacts@1
-#       displayName: 'Publish build artifacts'
-#       inputs:
-#         PathtoPublish: '$(Build.ArtifactStagingDirectory)/packages'
-#         ArtifactName: 'nuget-packages'
-#         publishLocation: 'Container'
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish build artifacts'
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)/packages'
+        ArtifactName: 'nuget-packages'
+        publishLocation: 'Container'
