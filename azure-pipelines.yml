@@ -46,7 +46,7 @@ stages:
         projects: '**/*.csproj'
         feedsToUse: 'select'
         vstsFeed: 'ProjectColdBrew/$(artifactsFeedName)'
-        includeNuGetOrg: true
+        includeNuGetOrg: false
         
     - task: DotNetCoreCLI@2
       displayName: 'Build solution'
